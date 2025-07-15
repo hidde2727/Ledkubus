@@ -1,0 +1,26 @@
+Zorg voor een directe connectie tussen je laptop en de rapsberry (Check dat de lampjes op de raspberry gaan branden, groen en oranje)
+
+Volg vervolgens dit (Het scherm heet configuratiescherm in het NL):
+https://standsi.github.io/Raspberry-Pi-5-VScode-SSH/rpi-vscode-ethernet.html
+
+Execute op de raspberry pi:
+nmcli connection show
+
+Noteer de naam die het meest overeenkomt met "Wired connection 1"
+
+sudo nmcli connection modify "Wired connection 1" \
+    ipv4.method manual \
+    ipv4.addresses 192.168.1.100/24 \
+    ipv4.gateway 192.168.1.1 \
+    ipv4.dns "8.8.8.8,8.8.4.4" \
+    autoconnect yes
+
+sudo nmcli connection down "Wired connection 1"
+sudo nmcli connection up "Wired connection 1"
+
+
+Vervolgens kan je SSH'en met de raspberry door op je laptop (vervang pi voor de username van het account, je kan deze vinden met het passwd commando op de pi)
+ssh pi@192.168.1.100
+te gebruiken
+
+Vervolgens kan je in de raspberry pi config auto-login aanzetten en boot naar CLI zetten (je kan dit in de CLI uitzetten met 'sudo raspi-config' en ga naar 'System Options' en vervolgens naar 'Boot/Auto Login', kies 'Desktop' of 'Desktop Autologin')

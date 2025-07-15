@@ -1,0 +1,1 @@
+exec sudo /usr/bin/gdb "$@"
