@@ -1,6 +1,6 @@
 #include "Ledcube.h"
 
-Ledcube::Ledcube(std::function<void(Ledcube& ledcube)> setFrame) : dmSPI(1), laSPI(1) {
+Ledcube::Ledcube(std::function<void(Ledcube& ledcube)> setFrame) : dmSPI(10000000), laSPI(10000000) {// The speed can be upped some more
     LOG("Hello world");
     GPIO::Setup();
     GPIO::Output(LA_LATCH);
@@ -46,6 +46,7 @@ Ledcube::~Ledcube() {
     LOG("stopped")
 }
 
+// This thread is dedicated to generating the frame according to the users input
 void Ledcube::FrameThread(std::function<void(Ledcube& ledcube)> setFrame) {
     while(!_runFrameThread.load()) {}
     LOG("Color thread started" << std::boolalpha << _runFrameThread.load())
@@ -56,6 +57,8 @@ void Ledcube::FrameThread(std::function<void(Ledcube& ledcube)> setFrame) {
     }
 
 }
+
+// This thread extracts the correct color (from the current frame) for the next layer the writing thread is going to display
 void Ledcube::ColorThread() {
     while(!_runColorThread.load()) {}
     LOG("Color thread started" << std::boolalpha << _runColorThread.load())
@@ -92,6 +95,8 @@ void Ledcube::ColorThread() {
         _colorCommandQueue.PopFront();
     }
 }
+
+// This thread does the communication with the GPIO pins (also sends SPI over GPIO)
 void Ledcube::WriteThread() {
     while(!_runWriteThread.load()) {}
     LOG("Writing thread started" << std::boolalpha << _runWriteThread.load())
@@ -106,62 +111,14 @@ void Ledcube::WriteThread() {
         #endif
         _colorCommandQueue.AwaitProcessed(_currentBuffer);
 
-        /*dmSPI.Send<1>(&_layerData[_currentBuffer][0]);
+        dmSPI.Send<24>(_layerData[_currentBuffer]);
         GPIO::Write(DM_ENABLE, true);
-        dmSPI.Send<1>(&_layerData[_currentBuffer][1]);
-        GPIO::Write(DM_ENABLE, true);
-        dmSPI.Send<1>(&_layerData[_currentBuffer][2]);
-        GPIO::Write(DM_ENABLE, true);
-        dmSPI.Send<1>(&_layerData[_currentBuffer][3]);
-        GPIO::Write(DM_ENABLE, true);
-        dmSPI.Send<1>(&_layerData[_currentBuffer][4]);
-        GPIO::Write(DM_ENABLE, true);
-        dmSPI.Send<1>(&_layerData[_currentBuffer][5]);
-        GPIO::Write(DM_ENABLE, true);
-        dmSPI.Send<1>(&_layerData[_currentBuffer][6]);
-        GPIO::Write(DM_ENABLE, true);
-        dmSPI.Send<1>(&_layerData[_currentBuffer][7]);
-        GPIO::Write(DM_ENABLE, true);
-        dmSPI.Send<1>(&_layerData[_currentBuffer][8]);
-        GPIO::Write(DM_ENABLE, true);
-        dmSPI.Send<1>(&_layerData[_currentBuffer][9]);
-        GPIO::Write(DM_ENABLE, true);
-        dmSPI.Send<1>(&_layerData[_currentBuffer][10]);
-        GPIO::Write(DM_ENABLE, true);
-        dmSPI.Send<1>(&_layerData[_currentBuffer][11]);
-        GPIO::Write(DM_ENABLE, true);
-        dmSPI.Send<1>(&_layerData[_currentBuffer][12]);
-        GPIO::Write(DM_ENABLE, true);
-        dmSPI.Send<1>(&_layerData[_currentBuffer][13]);
-        GPIO::Write(DM_ENABLE, true);
-        dmSPI.Send<1>(&_layerData[_currentBuffer][14]);
-        GPIO::Write(DM_ENABLE, true);
-        dmSPI.Send<1>(&_layerData[_currentBuffer][15]);
-        GPIO::Write(DM_ENABLE, true);
-        dmSPI.Send<1>(&_layerData[_currentBuffer][16]);
-        GPIO::Write(DM_ENABLE, true);
-        dmSPI.Send<1>(&_layerData[_currentBuffer][17]);
-        GPIO::Write(DM_ENABLE, true);
-        dmSPI.Send<1>(&_layerData[_currentBuffer][18]);
-        GPIO::Write(DM_ENABLE, true);
-        dmSPI.Send<1>(&_layerData[_currentBuffer][19]);
-        GPIO::Write(DM_ENABLE, true);
-        dmSPI.Send<1>(&_layerData[_currentBuffer][20]);
-        GPIO::Write(DM_ENABLE, true);
-        dmSPI.Send<1>(&_layerData[_currentBuffer][21]);
-        GPIO::Write(DM_ENABLE, true);
-        dmSPI.Send<1>(&_layerData[_currentBuffer][22]);
-        GPIO::Write(DM_ENABLE, true);
-        dmSPI.Send<1>(&_layerData[_currentBuffer][23]);
-        GPIO::Write(DM_ENABLE, true);*/
-        dmSPI.Send<1>(_layerData[_currentBuffer]);
-        //GPIO::Write(DM_ENABLE, true);
         GPIO::Write(DM_LATCH, true);
         GPIO::Write(DM_LATCH, false);
         const uint8_t dataOn[1] = {0xFF ^ (1 << _currentLayer)};
         laSPI.Send<1>(dataOn);
         GPIO::Write(LA_LATCH, true);
-        //GPIO::Write(DM_ENABLE, false);
+        GPIO::Write(DM_ENABLE, false);
         GPIO::Write(LA_LATCH, false);
 
         _colorCommandQueue.PushBack(_currentBuffer);
